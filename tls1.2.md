@@ -1282,12 +1282,80 @@ else:
 
 实现细节：现在我们都知道远程基于时间的攻击是可能的，至少client和server在同一个局域网是可以的。所以使用静态RSA密钥的实现者**必须**使用RSA blinding或者其他抵抗时间攻击的技术，见[TIMING](#TIMING)。
 
+#### 7.4.7.2 Client Diffie-Hellman Public Value
+该消息的含义：
+> 如果没有在client证书包含，该消息会携带client的DH的公钥(Yc)。Yc的编码格式由枚举值`PublicValueEncoding`决定。该结构是`ClientKeyExchange`的一个字段，不是一个单独的消息。
 
+该消息的结构：
+```
+enum { implicit, explicit } PublicValueEncoding;
+```
 
+***implicit***: 如果client发送的证书包含有合适的DH公钥(对于`fixed_dh`client认证方式)，那么Yc就是隐含的，并且不会再被发送一次。这种情况等下，也会发送`ClientKeyExchange`消息，但该消息为空。
 
+***explicit***: Yc需要被发送。
 
+```
+struct {
+    select (PublicValueEncoding) {
+        case implicit: struct { };
+        case explicit: opaque dh_Yc<1..2^16-1>;
+    } dh_public;
+} ClientDiffieHellmanPublic;
+```
 
+***dh_Yc***: client的DH公钥(Yc)。
 
+### 7.4.8. Certificate Verify
+该消息发送的时机：
+> 该消息用于给client证书提供明确证明。该消息只会在client发送了一个可以用于签名的证书(除包含静态DH公钥的其他所有证书)之后发送。如果发送，**必须**紧接着`ClientKeyExchange`消息。
+
+该消息的结构：
+```
+struct {
+    digitally-signed struct {
+        opaque handshake_messages[handshake_messages_length];
+    }
+} CertificateVerify;
+```
+
+这里`handshake_messages`表示所有发送和接收到的握手消息，从`ClientHello`一直到该消息，但不包含该消息。所有消息都拼接在一起([7.4](#7.4)定义的)。注意这要求两端都缓存所有消息或者用所有可能的hash算法计算hash值，直到计算`CertificateVerify`消息为止。server可以在`CertificateRequest`消息中限制一组摘要算法以减少计算量。
+
+这里签名使用的hash/signature算法对**必须**是`CertificateRequest`消息中`supported_signature_algorithms`列表中的一个。另外，hash和signature算法对**必须**跟client本身的证书中的公钥相匹配。除了证书中有特殊限制，RSA公钥**可以**跟任何允许的hash算法配合。
+
+因为DSA签名不包含任何对hash算法的安全性规定，如果一个密钥可以跟多个hash算法配合使用的话，会有hash算法被替换的风险。当前的DSA[DSS]算法可以只跟SHA-1配合，将来的DSS[DSS-3]版本期望可以使用其他摘要算法，也会规定每种大小的密钥使用哪种摘要算法。另外，将来的[PKIX]修订版可能会在证书中添加机制来指导DSA使用哪种签名算法。
+
+### 7.4.9. Finished
+该消息发送的时机：
+> 总是随着`ChangeCipherSpec`消息发送，以验证密钥交换和认证成功了。必须在其他握手消息和`Finished`消息之间收到一个`ChangeCipherSpec`消息才行。
+
+该消息的含义：
+> 该消息是第一个用协商出的算法、密钥、加密参数保护的数据。接收者必须校验消息内容是否正确。一旦一端发送了`Finished`，并且收到并校验的对端的`Finished`消息，就可以发送和接收应用数据了。
+
+该消息的结构：
+```
+struct {
+    opaque verify_data[verify_data_length];
+} Finished;
+```
+
+***verify_data***: PRF(master_secret, finished_label, Hash(handshake_messages))[0..verify_data_length-1];
+
+***finished_label***: 对client发送的该消息，该字符串是"client finished"。对server发送的该消息，该字符串是"server finished"。
+
+`Hash`表示对握手消息的一个hash的算法。对[5](#5)节定义PRF算法，`Hash`**必须**是用于PRF的`Hash`。任何定义一个不同PRF算法的加密套件，都必须同时定义`Finished`消息计算时候的`Hash`。
+
+在之前的TLS版本中，`verify_data`总是12字节。在当前TLS版本中，它的长度依赖加密套件。加密套件没有明确规定`verify_dat_length`的话，就默认是12字节，现有的加密套件都是12字节。注意本规定中的编码方式跟之前的协议版本规定的一样。将来的加密套件**可能**规定其他长度，但最短**必须**12字节。
+
+***handshake_messages***: 包含到现在为止的所有握手消息(不包含任何`HelloRequest`消息)，但不包含本消息。这些只是握手层可见的数据，不包含记录层的头，所有消息都是拼接在一起的。
+
+如果`Finished`消息之前不是`ChangeCipherSpec`，就是个严重错误。
+
+`handshake_messages`的值包含从`ClientHello`开始到现在的所有握手消息，但不包含`Finished`消息本身。这跟[7.4.8](#7.4.8)节中的`handshake_messages`不一样，因为这里的会包含`CertificateVerify`消息(如果发送了的话)。并且，client发送的`Finished`消息中的`handshake_messages`跟server发送的也不一样，因为后发送的会包含前一个发送的。
+
+注意：`ChangeCipherSpec`消息、告警和其他不是握手消息的记录层消息类型不用于hash计算。并且，也要忽略掉`HelloRequest`消息。
+
+# 8. 密钥计算
 
 
 

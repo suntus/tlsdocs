@@ -1192,6 +1192,98 @@ client证书消息使用7.4.2节定义的`Certificate`结构体。
 
 > 当client用的是瞬时DH参数，该消息会包含client的DH公钥。如果client发送了一个包含静态DH公钥的证书(比如使用`fixed_dh`客户端认证方式)，也必须发送该消息，但该消息为空。
 
+该消息的结构：
+> 该消息的结构依赖协商出的密钥交换算法。`KeyExchangeAlgorithm`的定义见[7.4.3.](#7.4.3.)。
+
+```
+struct {
+    select (KeyExchangeAlgorithm) {
+        case rsa:
+            EncryptedPreMasterSecret;
+        case dhe_dss:
+        case dhe_rsa:
+        case dh_dss:
+        case dh_rsa:
+        case dh_anon:
+            ClientDiffieHellmanPublic;
+    } exchange_keys;
+} ClientKeyExchange;
+```
+
+#### 7.4.7.1. RSA-Encrypted Premaster Secret Message
+该消息的含义：
+> 如果密钥协商和认证使用RSA算法，client会生成一个48字节的预主密钥，用server证书中的公钥加密，将加密结果放在`EncryptedPreMasterSecret`中发送给server。该结构是`ClientKeyExchange`的一个字段，不是一个单独的消息。
+
+该消息的结构：
+```
+struct {
+    ProtocolVersion client_version;
+    opaque random[46];
+} PreMasterSecret;
+```
+
+***client_version***: client支持的最新版本，用于检查版本降级攻击。
+
+***random***: 46字节随机数。
+
+```
+struct {
+    public-key-encrypted PreMasterSecret pre_master_secret;
+} EncryptedPreMasterSecret;
+```
+
+***pre_master_secret***: client生成的随机数，用于生成主密钥，见[8.1.](#8.1.1);
+
+注意: ``PreMasterSecret`是celint在`ClientHello.client_version`中提供的版本号，不是该连接协商出。设计该特性是用于抵抗版本降级攻击。但不好的是，一些旧的实现使用了协商出的版本号，因此检查该值是否设置正确可能会导致握手失败。
+
+符合本文档的client实现**必须**总是在`PreMasterSecret`中发送正确的版本号。如果`ClientHello.client_version`是TLS1.1或更高，server**必须**按照如下规则检查该版本号。如果该版本号是TLS1.0或更低，server**应该**检查该值，但**可以**有一个开关关闭该检查。注意如果检查失败，`PreMasterSecret`的值**应该**按照如下描述进行随机化。
+
+注意: 由Bleichenbacher[BLEI]和Klima et al.[KPR03]发现的攻击方法可以攻击TLS server，以发现一个特定消息在被解密时，是否正确用PKCS#1格式构建，是否包含一个正确的`PreMasterSecret`结构体，或者是否有正确的版本号。
+
+如Klima[KPR03]所述，可以通过区别对待没有正确构建和/或版本号不匹配的结构体与正确构建的结构体，来避免这些脆弱点。换句话说就是：
+1. 生成一个46字节的随机串R
+2. 解密该消息以恢复明文M
+3.
+```
+if PKCS#1填充不正确，or 消息M的长度不是正好的48字节：
+    pre_master_secret = ClientHello.client_version || R
+else if ClientHello.client_version <= TLS 1.0, and 明确关闭了版本号检查功能:
+    pre_master_secret = M
+else
+    pre_master_secret = ClientHello.client_version || M[2..47]
+```
+
+注意，如果client在原始的`pre_master_secret`中使用了错误的版本号，那么用`ClientHello.client_version`明确构建的`pre_master_secret`会生成一个非法的`master_secret`。
+
+一个可选的解决办法是将版本号不匹配当成PKCS#1格式错误，完全将预主密钥随机化：
+1. 生成一个48字节的随机串R
+2. 解密该消息以恢复明文M
+3.
+```
+if PKCS#1填充不正确， or 消息M的长度不是正好的48字节:
+    pre_master_secret = R
+else if ClientHello.client_version <= TLS 1.0, and 明确关闭了版本号检查功能：
+    pre_master_secret = M
+else if M[0..1] != ClientHello.client_version:
+    pre_masetr_secret = R
+else:
+    pre_master_secret = M
+```
+
+尽管还没见过实际针对这种构建方法的攻击，但Klima et al.[KPR03]描述了理论上的攻击手段，因此建议使用第一种方法。
+
+不管哪种情况，TLS server在处理RSA加密的预主密钥失败的时候都**不准**发送告警，或者生成不是期望的版本号的告警，而是使用一个随机生成的预主密钥继续握手。可以记录下实际导致握手失败的原因；但必须注意不能泄露信息给攻击者(比如从时间，日志文件，或者其他信道)。
+
+在[PKCS1]中定义的RSAES-OAEP加密模式对抵御Bleichenbacher攻击更有效。但是，为了跟之前的TLS版本最大程度的兼容，本规定使用RSAES-PKCS1-v1_5加密模式。如果按照之前的建议去实现，还没发现有什么Bleichenbacher攻击的变种被发现。
+
+实现细节：公钥加密的数据用一个未定义的向量<0..2^16-1>来表示(见[4.7.](#4.7.))。因此，在`ClientKeyExchange`消息中被RSA加密的`PreMasterSecret`前边有2字节的长度。这2个字节在RSA的情况下是多余的，因为`EncryptedPreMasterSecret`是`ClientKeyExchange`中唯一的数据，并且长度可以被明确定义。SSLv3的规定中里没有明确公钥加密数据的编码格式，因此很多SSLv3的实现就没有包含这2个长度字段——它们直接在`ClientKeyExchange`消息中编码了RSA加密后的数据。
+
+本规定要求必须完整包含长度字段。结果就是数据单元跟很多SSLv3的实现不兼容。基于SSLv3进行升级的实现者**必须**调整从他们的实现代码以生成和接受正确的编码。实现者想同时兼容SSLv3和TLS的话，需要根据协议版本去选择合适的编解码过程。
+
+实现细节：现在我们都知道远程基于时间的攻击是可能的，至少client和server在同一个局域网是可以的。所以使用静态RSA密钥的实现者**必须**使用RSA blinding或者其他抵抗时间攻击的技术，见[TIMING](#TIMING)。
+
+
+
 
 
 
@@ -1208,3 +1300,7 @@ client证书消息使用7.4.2节定义的`Certificate`结构体。
 
 # 附录E：后向兼容性
 ## E.1. 跟TLS 1.0/1.1 和SSL 3.0的兼容性
+
+
+<a id="TIMING"/>[TIMING]</a> Boneh, D., Brumley, D., "Remote timing attacks are
+practical", USENIX Security Symposium 2003.

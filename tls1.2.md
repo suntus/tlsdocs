@@ -1178,6 +1178,11 @@ client证书消息使用7.4.2节定义的`Certificate`结构体。
 | rsa_fixed_dh, dss_fixed_dh      |  DH公钥；必须用跟server的key一样的参数 |
 | rsa_fixed_ecdh, ecdsa_fixed_ecdh|  ECDH兼容公钥；必须用跟server的key一样的曲线，必须用server支持的一个点的格式 |
 
+- 如果`CertificateRequest`消息中的`certificate_authorities`列表不为空，证书链中的至少1个证书必须由列出的CA中的一个签发。
+- 证书必须用可接受的hash/signature算法对签名，见[#7.4.4.](#7.4.4.)。注意这是对之前TLS版本对证书签名算法限制的一个放宽。
+
+注意，跟server证书一样，有些client证书用的hash/signature算法组合不适用于现在的TLS版本。
+
 
 
 

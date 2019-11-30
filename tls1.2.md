@@ -1183,6 +1183,14 @@ client证书消息使用7.4.2节定义的`Certificate`结构体。
 
 注意，跟server证书一样，有些client证书用的hash/signature算法组合不适用于现在的TLS版本。
 
+### 7.4.7. Client Key Exchange Message
+该消息发送的时机：
+> client总是会发送该消息。如果发送了client证书，必须紧接着就发送该消息。否则，该消息就是client收到`ServerHelloDone`之后发送的第一个消息。
+
+该消息的含义：
+> 预主密钥会在该消息中发送出去，一种方式是用RSA加密后直接发送，另一种是用DH算法，发送DH参数，让client和server能协商出共同的预主密钥。
+> 当client用的是瞬时DH参数，该消息会包含client的DH公钥。如果client发送了一个包含静态DH公钥的证书(比如使用`fixed_dh`客户端认证方式)，也必须发送该消息，但该消息为空。
+
 
 
 

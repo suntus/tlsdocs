@@ -1357,6 +1357,9 @@ struct {
 
 # 8. 密钥计算
 
+为了开始连接保护，TLS记录层协议需要一套加密算法、一个主秘钥和client、server的随机数。认证、加密、MAC算法由server选出`cipher_suite`决定，并在`ServerHello`中体现。压缩算法在hello消息中协商，随机数也在hello消息中交换。接下来就剩下计算主秘钥了。
+
+## 8.1. 计算主秘钥
 
 
 

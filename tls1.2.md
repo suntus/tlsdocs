@@ -1356,10 +1356,30 @@ struct {
 注意：`ChangeCipherSpec`消息、告警和其他不是握手消息的记录层消息类型不用于hash计算。并且，也要忽略掉`HelloRequest`消息。
 
 # 8. 密钥计算
-
 为了开始连接保护，TLS记录层协议需要一套加密算法、一个主秘钥和client、server的随机数。认证、加密、MAC算法由server选出`cipher_suite`决定，并在`ServerHello`中体现。压缩算法在hello消息中协商，随机数也在hello消息中交换。接下来就剩下计算主秘钥了。
 
 ## 8.1. 计算主秘钥
+不管什么秘钥交换算法，将`pre_master_secret`转换成`master_secret`都用的是同一个算法。一旦`master_secret`计算完成，就要将`pre_master_secret`从内存中删除掉。
+```
+master_secret = PRF(pre_master_secret, "master secret", ClientHello.random + ServerHello.random)[0..47];
+```
+
+`master_secret`总是48字节，`pre_master_secret`则会随着秘钥交换算法不同而改变。
+
+### 8.1.1. RSA
+当用RSA进行server认证和秘钥交换时，client会生成一个48字节的`pre_master_secret`，用server的公钥加密，然后发送给server。server使用它自己的私钥解密出`pre_master_secret`。然后两端按照上边说的方法将`pre_master_secret`转换成`master_secret`。
+
+### 8.1.2. Diffie-Hellman
+DH算法的计算就很简单了。协商出的秘钥(Z)被用作`pre_master_secret`，然后被转换成`master_secret`。Z的前导0位在用作`pre_master_secret`的时候都要删掉。
+
+注意： DH的参数由server规定，并且可能是临时生成的或者在server的证书中固定保存的。
+
+# 9. 必须要实现的加密套件
+
+
+
+
+
 
 
 

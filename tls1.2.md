@@ -808,7 +808,8 @@ struct {} HelloRequest;
 该消息不会被包含进用于`Finished`和`CertificateVerify`消息的握手hash中。
 
 #### 7.4.1.2. Client Hello
-该消息发送的时机：当client初次连接server时，需要发送`ClientHello`作为第一个消息。client也可能再回应`HelloRequest`或者恢复一个已有连接的时候发送该消息。
+该消息发送的时机：
+> 当client初次连接server时，需要发送`ClientHello`作为第一个消息。client也可能再回应`HelloRequest`或者恢复一个已有连接的时候发送该消息。
 
 该消息的结构：
 `ClientHello`包含一个随机数结构体，之后的协议也会用到。
@@ -872,7 +873,8 @@ TLS允许在`compression_methods`字段之后跟一个扩展项字段。是否�
 发送`ClientHello`之后，client会等着一个`ServerHello`消息。除了`HelloRequest`，server回复的任何其他消息都认为是严重错误。
 
 #### 7.4.1.3. Server Hello
-该消息发送的时机：server在收到`ClientHello`之后，如果能协商出一套加密算法来，就回复该消息。如果不能协商出来，就回复一个握手失败的告警。
+该消息发送的时机:
+> server在收到`ClientHello`之后，如果能协商出一套加密算法来，就回复该消息。如果不能协商出来，就回复一个握手失败的告警。
 
 该消息的结构：
 ```
@@ -943,8 +945,14 @@ enum {
 client用`signature_algorithms`扩展项指导server使用哪个签名/hash算法对儿做数字签名。`extension_data`字段包含`supported_signature_algorithms`。
 ```
 enum {
-    none(0), md5(1), sha1(2), sha224(3), sha256(4), sha384(5),
-    sha512(6), (255)
+    none(0),
+    md5(1),
+    sha1(2),
+    sha224(3),
+    sha256(4),
+    sha384(5),
+    sha512(6),
+    (255)
 } HashAlgorithm;
 
 enum { anonymous(0), rsa(1), dsa(2), ecdsa(3), (255) } SignatureAlgorithm;
@@ -983,11 +991,13 @@ server禁止发送该扩展，server必须支持接收该扩展项。
 当执行会话回复的时候，该扩展项不会包含在`ServerHello`中，如果`ClientHello`中有，server会忽略掉。
 
 ###### 7.4.2. Server Certificate
-该消息发送的时机：只要server选择的密钥交换算法使用证书来进行认证(本文档中除DH_anon之外的所有其他密钥交换算法)，就必须发送该消息。该消息总会直接跟着`ServerHello`。
+该消息发送的时机:
+> 只要server选择的密钥交换算法使用证书来进行认证(本文档中除DH_anon之外的所有其他密钥交换算法)，就必须发送该消息。该消息总会直接跟着`ServerHello`。
 
-该消息的含义：消息承载的是server发给client的证书链。
+该消息的含义：
+> 消息承载的是server发给client的证书链。
 
-证书必须跟协商好的加密套件的密钥交换算法和任何其他扩展功能相一致。
+> 证书必须跟协商好的加密套件的密钥交换算法和任何其他扩展功能相一致。
 
 该消息的结构：
 ```
@@ -1008,18 +1018,14 @@ server发送什么证书依赖下边的规则：
 - 证书类型必须是X.509v3, 除非另外明确协商(比如[TLSPGP])。
 - 终端证书的公钥(和相应约束)必须跟密钥交换算法相一致：
 
-**密钥交换算法    -----       证书公钥类型**
-**RSA/RSA_PSK**： RSA公钥；证书必须允许公钥用于加密(如果公钥使用约束扩展项存在，必须设置`keyEncipherment`)。RSA_PSK定义在[TLSPSK]中。
-
-**DHE_RSA/ECDHE_RSA**: RSA公钥；证书必须允许公钥用于签名(如果公钥使用约束扩展项存在，必须设置`digitalSignature`)，并且签名/hash算法必须包含进`ServerKeyExchange`消息中。
-
-**DHE_DSS**: DSA公钥；证书必须允许公钥可以用于`ServerKeyExchange`消息中的签名算法。
-
-**DH_DSS/DH_RSA**: DH公钥；如果有公钥使用扩展项，必须设置`keyAgreement`。
-
-**ECDH_ECDSA/ECDH_RSA**: 可用于ECDH的公钥；公钥必须用client支持的曲线和点，见[TLSECC]。
-
-**ECDHE_ECDSA**: 可用于ECDSA的公钥；证书必须允许公钥可以用于`ServerKeyExchange`消息中的签名算法。公钥必须用client支持的曲线和点，见[TLSECC]。
+|密钥交换算法    |       证书公钥类型|
+|---------------|------------------|
+|**RSA/RSA_PSK**| RSA公钥；证书必须允许公钥用于加密(如果公钥使用约束扩展项存在，必须设置`keyEncipherment`)。RSA_PSK定义在[TLSPSK]中。|
+|**DHE_RSA/ECDHE_RSA**|RSA公钥；证书必须允许公钥用于签名(如果公钥使用约束扩展项存在，必须设置`digitalSignature`)，并且签名/hash算法必须包含进`ServerKeyExchange`消息中。|
+|**DHE_DSS**|DSA公钥；证书必须允许公钥可以用于`ServerKeyExchange`消息中的签名算法。|
+|**DH_DSS/DH_RSA**| DH公钥；如果有公钥使用扩展项，必须设置`keyAgreement`。|
+|**ECDH_ECDSA/ECDH_RSA**| 可用于ECDH的公钥；公钥必须用client支持的曲线和点，见[TLSECC]。|
+|**ECDHE_ECDSA**| 可用于ECDSA的公钥；证书必须允许公钥可以用于`ServerKeyExchange`消息中的签名算法。公钥必须用client支持的曲线和点，见[TLSECC]。|
 
 - "server_name"和"trusted_ca_keys"扩展项用于指导证书选择。
 
@@ -1032,7 +1038,9 @@ server发送什么证书依赖下边的规则：
 如果加密套件定义了新的秘钥交换方法，也需要相应的规定证书格式和需要的秘钥编码信息。
 
 ### 7.4.3. ServerKeyExchange
-消息发送的时机：会在server发送完`Certificate`之后立马发送(如果是匿名协商，就是`ServerHello`消息之后)。
+消息发送的时机：
+> 会在server发送完`Certificate`之后立马发送(如果是匿名协商，就是`ServerHello`消息之后)。
+
 该消息只会在server发送的`Certificate`消息(如果发送)中没有包含足够让client交换预主秘钥的信息的时候才会发送。下面这些秘钥交换算法就需要发送该消息：
 **DHE_DSS**
 **DHE_RSA**
@@ -1099,7 +1107,8 @@ struct {
 最后再强调一下，为TLS设计的包含新秘钥交换算法的加密套件，`ServerKeyExchange`消息只在server证书没有提供足够让client进行秘钥交换的信息的时候才被发送。
 
 ### 7.4.4. Certificate Request
-该消息发送的时机：如果协商的加密套件合适，非匿名的server可以选择要求client发送它自己的证书。如果发送该消息，需要紧跟着`ServerKeyExchange`消息(如果没发送，就跟着server的`Certificate`消息)。
+该消息发送的时机：
+> 如果协商的加密套件合适，非匿名的server可以选择要求client发送它自己的证书。如果发送该消息，需要紧跟着`ServerKeyExchange`消息(如果没发送，就跟着server的`Certificate`消息)。
 
 该消息的结构：
 ```
@@ -1139,11 +1148,13 @@ dss_fixed_dh: 包含静态DH秘钥的证书
 注意: 一个匿名的server要求client进行认证是个严重的握手错误。
 
 ### 7.4.5. Server Hello Done
-该消息发送的时机：server发送以表示`ServerHello`和相关信息已经发送完毕了，发送完该消息，server就等着client回复。
+该消息发送的时机：
+> server发送以表示`ServerHello`和相关信息已经发送完毕了，发送完该消息，server就等着client回复。
 
-该消息的含义：该消息表示server已经发送完了支持秘钥交换的相关信息，client可以开始它的秘钥交换步骤了。
+该消息的含义：
+> 该消息表示server已经发送完了支持秘钥交换的相关信息，client可以开始它的秘钥交换步骤了。
 
-收到该消息后，client应该检查server是否提供了一个合法的证书，检查server的参数是否可接受。
+> 收到该消息后，client应该检查server是否提供了一个合法的证书，检查server的参数是否可接受。
 
 该消息的结构：
 ```
@@ -1151,11 +1162,13 @@ struct { } ServerHelloDone;
 ```
 
 ### 7.4.6. Client Certificate
-该消息发送的时机: 这是client在收到`ServerHelloDone`消息后可以发送的第一个消息。该消息只在server请求client证书的时候才发送。如果没有合适的证书可选择，client必须发送一个不包含证书的消息，也就是说，`certificate_list`结构为空。如果client不发送任何证书，server可以根据自己的判断决定是不要client认证继续握手，还是回复一个`handshake_failure`的严重告警。另外，如果由于证书链的某些方面不合适(比如不是被一个知名CA签发)，server可以决定是继续握手还是发送严重告警中断握手。
+该消息发送的时机:
+> 这是client在收到`ServerHelloDone`消息后可以发送的第一个消息。该消息只在server请求client证书的时候才发送。如果没有合适的证书可选择，client必须发送一个不包含证书的消息，也就是说，`certificate_list`结构为空。如果client不发送任何证书，server可以根据自己的判断决定是不要client认证继续握手，还是回复一个`handshake_failure`的严重告警。另外，如果由于证书链的某些方面不合适(比如不是被一个知名CA签发)，server可以决定是继续握手还是发送严重告警中断握手。
 
-client证书消息使用7.4.2节定义的`Certificate`结构体。
+> client证书消息使用7.4.2节定义的`Certificate`结构体。
 
-该消息的含义: 该消息包含client发送给server的证书链，server会在验证`CertificateVerify`的时候(当client的认证基于签名的时候)或者计算预主密钥的时候(对非瞬时DH算法)。证书必须跟协商的加密套件中的密钥交换算法和任何协商的扩展项相一致。
+该消息的含义:
+> 该消息包含client发送给server的证书链，server会在验证`CertificateVerify`的时候(当client的认证基于签名的时候)或者计算预主密钥的时候(对非瞬时DH算法)。证书必须跟协商的加密套件中的密钥交换算法和任何协商的扩展项相一致。
 
 特别的：
 - 证书类型必须是X.509v3，除非另外明确协商。

@@ -661,50 +661,28 @@ TLS握手协议中的错误处理非常简单。当检测到错误时，检测�
 |----------------------|-----------------------|
 |**unexpected_message** | 收到了不合适的消息。总是严重等级，且不应该在通信的时候被观测到。|
 |**bad_record_mac** | 收到的记录帧带的MAC不正确的时候发送的，也会在TLSCiphertext解密的时候，由于不是加密块的整数倍，或者填充不正确的原因发送。总是严重，且不应该在通信时被发现(除非消息在网络中被破坏)。|
-
-**decryption_failed_RESERVED**: 用于早期的TLS版本，可能会引起某些针对CBC模式的攻击。在兼容性实现中不应该被发送。
-
-**record_overflow**: 收到的TLSCiphertext记录帧长度超过2^14+2048字节，或者解密后的TLSCompressed记录帧超过2^14+1024字节时，会发送该告警。总是严重告警，需要加密保护，不能在通信过程中被观察到。
-
-**decompression_failure**: 解压算法收到的输入不正确(比如解压后超过了规定的长度)。总是严重告警，需要加密保护，不能在通信过程中被观察到。
-
-**handshake_failure**: 收到该告警意味着对端无法协商出合适的加密参数，导致无法继续。严重告警。
-
-**no_certificate_RESERVED**: 只用于SSLv3，兼容性实现的时候不应该被发送。
-
-**bad_certificate**: 证书被破坏，包含的签名不正确等。
-
-**unsupported_certificate**: 不支持的证书类型。
-
-**certificate_revoked**: 证书被签发者收回了。
-
-**certificate_expired**:证书过期或者还未投入使用。
-
-**certificate_unknown**: 处理证书过程中一些其他导致证书无法被接受的特殊情况。
-
-**illegal_parameter**: 握手中的一个字段跟其他字段不一致。总是严重告警。
-
-**unknown_ca**: 收到了完整的或部分的证书链，但找不到CA证书或者CA没有被一个已知可信的CA签名。总是严重告警。
-
-**access_denied**: 收到了正确的证书，但由于有接入控制，就发送该告警表示不继续协商了。总是严重告警。
-
-**decode_error**: 有些消息因为某些字段超过了规定范围或消息长度不准确，就会发送该消息。总是严重告警，需要加密保护，不能在通信过程中被观察到。
-
-**decrypt_error**: 握手加密算法操作失败，包括无法正确验签或者无法检验Finished消息的正确性。总是严重告警。
-
-**export_restriction_RESERVED**: 在早期TLS版本中使用，现在不再用。
-
-**protocol_version**: 识别到了client发送来的协议，但server端不支持。(比如因为安全问题不支持一些旧的版本。)总是严重告警。
-
-**insufficient_security**: 在server需要更安全的加密算法时，不是发送`handshake_failure`，而是发送该告警。总是严重告警。
-
-**internal_error**: 跟对端或者协议正确性不相关的内部错误(比如内存申请失败等)导致连接无法继续。总是严重告警。
-
-**user_canceled**: 由于跟协议失败不相关的原因希望取消握手，如果握手完成后，用户想取消，更合适的是发送一个`close_notify`消息。该告警后边应该跟个`close_notify`。通常是warning级别。
-
-**no_renegotiation**: client收到hello request之后响应，或者server在第一次握手后再收到client hello后响应。不管哪种情况通常都导致重新协商，当接收端觉得不合适的话，就会发送该告警。这种情况下，对端会决定要不要继续连接。举个例子，server可能会另起一个进程来满足连接请求，该进程在开始时会收到一些加密参数(秘钥长度，认证方法等)，这之后就很难再更改这些参数了，这时候如果client想重新协商，server就可以发送该告警。总是warning级别。
-
-**unsupported_extension**: client收到server hello中包含不是对client hello中扩展项回复的扩展项的时候，会发送该消息。总是严重告警。
+| **decryption_failed_RESERVED**| 用于早期的TLS版本，可能会引起某些针对CBC模式的攻击。在兼容性实现中不应该被发送。|
+| **record_overflow** | 收到的TLSCiphertext记录帧长度超过2^14+2048字节，或者解密后的TLSCompressed记录帧超过2^14+1024字节时，会发送该告警。总是严重告警，需要加密保护，不能在通信过程中被观察到。 |
+| **decompression_failure** | 解压算法收到的输入不正确(比如解压后超过了规定的长度)。总是严重告警，需要加密保护，不能在通信过程中被观察到。 |
+| **handshake_failure** | 收到该告警意味着对端无法协商出合适的加密参数，导致无法继续。严重告警。 |
+| **no_certificate_RESERVED** | 只用于SSLv3，兼容性实现的时候不应该被发送。 |
+| **bad_certificate** | 证书被破坏，包含的签名不正确等。 |
+| **unsupported_certificate** | 不支持的证书类型。 |
+| **certificate_revoked** | 证书被签发者收回了。 |
+| **certificate_expired** | 证书过期或者还未投入使用。 |
+| **certificate_unknown** | 处理证书过程中一些其他导致证书无法被接受的特殊情况。 |
+| **illegal_parameter** | 握手中的一个字段跟其他字段不一致。总是严重告警。 |
+| **unknown_ca** | 收到了完整的或部分的证书链，但找不到CA证书或者CA没有被一个已知可信的CA签名。总是严重告警。 |
+| **access_denied** | 收到了正确的证书，但由于有接入控制，就发送该告警表示不继续协商了。总是严重告警。 |
+| **decode_error** | 有些消息因为某些字段超过了规定范围或消息长度不准确，就会发送该消息。总是严重告警，需要加密保护，不能在通信过程中被观察到。 |
+| **decrypt_error** | 握手加密算法操作失败，包括无法正确验签或者无法检验Finished消息的正确性。总是严重告警。 |
+| **export_restriction_RESERVED** | 在早期TLS版本中使用，现在不再用。 |
+| **protocol_version** | 识别到了client发送来的协议，但server端不支持。(比如因为安全问题不支持一些旧的版本。)总是严重告警。 |
+| **insufficient_security** | 在server需要更安全的加密算法时，不是发送`handshake_failure`，而是发送该告警。总是严重告警。 |
+| **internal_error** | 跟对端或者协议正确性不相关的内部错误(比如内存申请失败等)导致连接无法继续。总是严重告警。 |
+| **user_canceled** | 由于跟协议失败不相关的原因希望取消握手，如果握手完成后，用户想取消，更合适的是发送一个`close_notify`消息。该告警后边应该跟个`close_notify`。通常是warning级别。 |
+| **no_renegotiation** | client收到hello request之后响应，或者server在第一次握手后再收到client hello后响应。不管哪种情况通常都导致重新协商，当接收端觉得不合适的话，就会发送该告警。这种情况下，对端会决定要不要继续连接。举个例子，server可能会另起一个进程来满足连接请求，该进程在开始时会收到一些加密参数(秘钥长度，认证方法等)，这之后就很难再更改这些参数了，这时候如果client想重新协商，server就可以发送该告警。总是warning级别。 |
+| **unsupported_extension** | client收到server hello中包含不是对client hello中扩展项回复的扩展项的时候，会发送该消息。总是严重告警。 |
 
 新的Alert消息由IANA管理。
 

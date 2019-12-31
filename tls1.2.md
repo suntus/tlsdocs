@@ -724,7 +724,7 @@ Finished            -------->
                     <--------   Finished
 Application Data    <------->   Application Data
 
-图1. 完整握手消息流
+                图1. 完整握手消息流
 ```
 
 \* 表示可选的或者根据情况并不总是发送的消息
@@ -743,7 +743,8 @@ ClientHello         -------->
 [ChangeCipherSpec]
 Finished            -------->
 Application Data    <------->   Application Data
-图2。 简短握手消息流
+
+                图2。 简短握手消息流
 ```
 每个消息的内容和特点会在下边章节中详细说明。
 
@@ -751,10 +752,15 @@ Application Data    <------->   Application Data
 TLS握手协议是定义在记录层之上的一个协议。该协议用于协商会话的加密参数，握手消息由记录层提供，被封装在一个或多个`TLSPlaintext`结构中，由当前激活的会话状态处理和传输。
 ```
 enum {
-    hello_request(0), client_hello(1), server_hello(2),
-    certificate(11), server_key_exchange (12),
-    certificate_request(13), server_hello_done(14),
-    certificate_verify(15), client_key_exchange(16),
+    hello_request(0),
+    client_hello(1),
+    server_hello(2),
+    certificate(11),
+    server_key_exchange (12),
+    certificate_request(13),
+    server_hello_done(14),
+    certificate_verify(15),
+    client_key_exchange(16),
     finished(20), (255)
 } HandshakeType;
 
@@ -784,13 +790,15 @@ struct {
 hello阶段的消息用于在client和server之间交换加密参数。开始一个新会话时，记录层连接状态的加密、hash、压缩算法都初始化为null。当前连接状态用于重新协商的消息。
 
 # 7.4.1.1. Hello Request
-该消息发送的时机：server在任何时候都可能发送该消息。
+该消息发送的时机:
+> server在任何时候都可能发送该消息。
 
-该消息的含义：`HelloRequest`只是简单的通知client应该开始一个新的协商过程。作为回应，client应该在合适的时候发送`ClientHello`消息。该消息不是为了区分哪一端是server哪一端是client，只是为了发起新协商过程。server不应该在client刚开始连接的时候就立即发送`HelloRequest`，那是client需要发送`ClientHello`的时候。
+该消息的含义：
+> `HelloRequest`只是简单的通知client应该开始一个新的协商过程。作为回应，client应该在合适的时候发送`ClientHello`消息。该消息不是为了区分哪一端是server哪一端是client，只是为了发起新协商过程。server不应该在client刚开始连接的时候就立即发送`HelloRequest`，那是client需要发送`ClientHello`的时候。
 
-如果client当前正在协商会话，client可能会忽略该消息。client不想协商新会话的话，或者默默忽略该消息，或者发送一个`no_renegotiation`告警。因为握手消息要先于应用数据发送，可以认为协商在收到client发来的没几个记录帧之后就能很快开始。如果server在发送了`HelloRequest`后没收到`ClientHello`，可以用一个严重告警来关闭连接。
+> 如果client当前正在协商会话，client可能会忽略该消息。client不想协商新会话的话，或者默默忽略该消息，或者发送一个`no_renegotiation`告警。因为握手消息要先于应用数据发送，可以认为协商在收到client发来的没几个记录帧之后就能很快开始。如果server在发送了`HelloRequest`后没收到`ClientHello`，可以用一个严重告警来关闭连接。
 
-发送`HelloRequest`之后，server在握手协商完成之前不应该再重复发送。
+> 发送`HelloRequest`之后，server在握手协商完成之前不应该再重复发送。
 
 该消息的结构：
 ```

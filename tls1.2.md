@@ -363,20 +363,23 @@ TLS记录层从上层接收不为空的任意长度的未定义数据。
 记录层会将消息分片成`TLSPlaintext`中小于等于2^14字节大小的负载。记录层没有保存应用消息的边界(例如相同`ContentType`的多个消息可能会被塞进一个TLSPlaintext记录包中，或者一个消息可能分片成多个记录包)。
 ```
 struct {
-  uint8 major;
-  uint8 minor;
+    uint8 major;
+    uint8 minor;
 } ProtocolVersion;
 
 enum {
-  change_cipher_spec(20), alert(21), handshake(22),
-  application_data(23), (255)
+    change_cipher_spec(20),
+    alert(21),
+    handshake(22),
+    application_data(23),
+    (255)
 } ContentType;
 
 struct {
-  ContentType type;
-  ProtocolVersion version;
-  uint16 length;
-  opaque fragment[TLSPlaintext.length];
+    ContentType type;
+    ProtocolVersion version;
+    uint16 length;
+    opaque fragment[TLSPlaintext.length];
 } TLSPlaintext;
 ```
 
@@ -388,7 +391,7 @@ struct {
 
 **fragment**: 负载数据。这部分数据对记录层来说是透明的，由`type`字段指定的相应的上层协议去处理。
 
-具体实现禁止发送0内容长度的握手/告警/ChangeCipherSpec协议数据包，但可以发送0内容长度的应用数据包(会部分抵抗流量分析攻击)。
+具体实现 ***禁止*** 发送0内容长度的握手、告警、ChangeCipherSpec协议数据包，但 ***可以*** 发送0内容长度的应用数据包(会部分抵抗流量分析攻击)。
 
 注意：不同TLS记录层负载类型可能会相互交错。应用数据类型消息通常比其他类型消息的传输优先级低一些，但必须按照加密的顺序传输记录包。第一个握手包发来之前接收者必须能接收处理交错的应用层数据包。
 
@@ -398,10 +401,10 @@ struct {
 压缩必须是无损的，且增加的内容大小不能超过1024字节。如果`TLSCompressed.fragment`解压后的大小超过了2^14字节，必须报告一个解压失败的严重警告。
 ```
 struct {
-  ContentType type; /* same as TLSPlaintext.type */
-  ProtocolVersion version;/* same as TLSPlaintext.version */
-  uint16 length;
-  opaque fragment[TLSCompressed.length];
+    ContentType type; /* same as TLSPlaintext.type */
+    ProtocolVersion version;/* same as TLSPlaintext.version */
+    uint16 length;
+    opaque fragment[TLSCompressed.length];
 } TLSCompressed;
 ```
 
@@ -417,14 +420,14 @@ struct {
 加密和MAC算法将TLSCompressed结构体转换成TLSCiphertext结构体。解密算法反过来。记录帧MAC也会包含序列号，所以记录帧丢失、多余、重复都会被检测到。
 ```
 struct {
-  ContentType type;
-  ProtocolVersion version;
-  uint16 length;
-  select (SecurityParameters.cipher_type) {
-    case stream: GenericStreamCipher;
-    case block: GenericBlockCipher;
-    case aead: GenericAEADCipher;
-  } fragment;
+    ContentType type;
+    ProtocolVersion version;
+    uint16 length;
+    select (SecurityParameters.cipher_type) {
+        case stream: GenericStreamCipher;
+        case block: GenericBlockCipher;
+        case aead: GenericAEADCipher;
+    } fragment;
 } TLSCiphertext;
 ```
 
@@ -565,11 +568,11 @@ server_write_IV[SecurityParameters.fixed_iv_length]
 # 7. TLS握手协议
 TLS有3个子协议，用于为记录层协商对端的加密参数、自我认证、初始化协商的加密参数和相互报告错误。
 
-握手协议主要负责协商出一个回话，包括以下各项：
+握手协议主要负责协商出一个会话，包括以下各项：
 
-**session identifier**: server选择的一个随机字符串用于标识一个活跃的活着可复用的会话状态。
+**session identifier**: server选择的一个随机字符串用于标识一个活跃的或者可复用的会话状态。
 
-**peer certificate**: 对端的X509v3[PKIX]证书，状态的这个字段可能为空。
+**peer certificate**: 对端的X.509v3[PKIX]证书，状态的这个字段可能为空。
 
 **compression method**: 加密前压缩数据的压缩算法。
 
@@ -585,7 +588,7 @@ TLS有3个子协议，用于为记录层协商对端的加密参数、自我认�
 change cipher spec协议指示加密状态转换。该协议只包含1个消息，用当前连接状态(不是未决状态)加密和压缩。该消息只包含1个字节，值是1.
 ```
 struct {
-  enum {change_cipher_spec(1), (255)} type;
+    enum {change_cipher_spec(1), (255)} type;
 } ChangeCipherSpec;
 ```
 
@@ -654,9 +657,11 @@ TLS握手协议中的错误处理非常简单。当检测到错误时，检测�
 如果发送或收到了一个普通告警的错误消息，连接通常还正常进行。如果接收方决定不继续该连接(在收到了一个`no_renegotiation`告警后，它不接受)，就应该发送一个严重告警来终止该连接。这样的话，发送方通常就不知道接收方到底会采取哪种响应，所以，如果发送方希望继续连接，普通告警就没什么卵用。例如，如果一端想接受过期证书(可能是在跟用户确认后)继续正常连接，通常就不会发送`certificate_expired`告警了。
 
 错误告警定义如下：
-**unexpected_message**: 收到了不合适的消息。总是严重等级，且不应该在通信的时候被观测到。
+|----------------------|-----------------------|
+|:---------------------|-----------------------|
+|**unexpected_message** | 收到了不合适的消息。总是严重等级，且不应该在通信的时候被观测到。|
 
-**bad_record_mac**: 收到的记录帧带的MAC不正确的时候发送的，也会在TLSCiphertext解密的时候，由于不是加密块的整数倍，或者填充不正确的原因发送。总是严重，且不应该在通信时被发现(除非消息在网络中被破坏)。
+|**bad_record_mac** | 收到的记录帧带的MAC不正确的时候发送的，也会在TLSCiphertext解密的时候，由于不是加密块的整数倍，或者填充不正确的原因发送。总是严重，且不应该在通信时被发现(除非消息在网络中被破坏)。|
 
 **decryption_failed_RESERVED**: 用于早期的TLS版本，可能会引起某些针对CBC模式的攻击。在兼容性实现中不应该被发送。
 

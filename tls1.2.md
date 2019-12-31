@@ -2,11 +2,11 @@
 
 
 # 1. 简介
-  TLS协议的主要目标是为两个应用之间的通信提供加密保护和数据完整性校验。该协议包括两层：TLS记录层和TLS握手层。TLS记录层工作在低层，在一些可靠的传输协议上(比如TCP)。记录层提供的连接安全性包括两个基本属性：
-  - 连接是私密的。数据用对称加密算法加密(比如AES和RC4)。对称加密的密钥对每个连接来说是唯一的，且基于另一个协议（比如TLS握手协议）协商来的secret生成。记录层也可以不用加密就能工作。
+  TLS协议的主要目标是为两个应用之间的通信提供加密保护和数据完整性校验。该协议包括两层：TLS记录层协议和TLS握手层协议。TLS记录层在最下，工作在一些可靠的传输协议上(比如TCP)。记录层提供的连接安全性包括两个基本属性：
+  - 连接是私密的。数据用对称加密算法加密(比如AES和RC4)。对称加密的密钥对每个连接来说是唯一的，且基于另一个协议（比如TLS握手协议）协商来的secret生成。记录层也可以不用加密就工作。
   - 连接是可靠的。每个消息传输的时候会包含一个使用密钥的MAC码来进行消息完整性校验。MAC码使用安全的hash算法（比如SHA-1等）计算得到。记录层协议不需要MAC码也能工作，但这通常只是用于另一个协议用记录层协议协商一些加密参数的情况下。
 
-  TLS记录层协议是为了加密多种更高层次的协议，其中一个就是TLS握手协议。握手协议让server和client能够相互认证，且在发送或接收第一个字节之前协商出一个加密算法和相应的密钥。TLS握手层协议提供的连接安全性包含3个基本属性：
+  TLS记录层协议用于加密多种更高层次的协议，其中一个就是TLS握手协议。握手协议让server和client能够相互认证，且在发送或接收第一个字节之前协商出一个加密算法和相应的密钥。TLS握手层协议提供的连接安全性包含3个基本属性：
   - 对端身份可以用非对称的或者说公钥加密的方法(比如RSA,DSA等)来进行认证。这种认证是可选的，但连接双方通常至少要求1个对端进行认证。
   - 共有密钥的协商是安全的：窃听者无法得到协商出的密钥，也无法获得任何建立好的连接的密钥信息。对中间人的攻击也是安全的。
   - 协商是可靠的：攻击者对协商的任何修改都能被通信双方所察觉。
@@ -24,8 +24,8 @@
   - 严格化了一些要求。
   - Verify_data长度现在依据加密套件了(默认还是12字节)。
   - 清理了Bleichenbacher/Klima攻击防御的描述。
-  - 现在很多情况下必须发送alert。
-  - 收到一个certificate_request证书请求后，如果没有可用证书，client现在必须发送一个空的证书列表
+  - 现在很多情况下***必须***发送alert。
+  - 收到一个certificate_request证书请求后，如果没有可用证书，client现在***必须***发送一个空的证书列表
   - TLS_RSA_WITH_AES_128_CBC_SHA加密套件必须实现。
   - 增加了HMAC-SHA256加密套件类。
   - 移除了IDEA和DES加密套件。他们现在过时了，会在单独的文件中说明。
@@ -37,7 +37,7 @@
 # 2. 目标
   TLS协议的目标，按照优先级如下：
   1. 密码学安全：TLS可以被用于在双方之间建立一个安全的通信通道。
-  2. 互通性：程序员开发的带TLS的程序可以跟另一个完全不知道代码的程序成功交换密码参数。
+  2. 互操作性：程序员开发的带TLS的程序可以跟另一个完全不知道代码的程序成功交换密码参数。
   3. 可扩展性：TLS希望能提供一个框架，让新的对称和非对称算法在需要的时候能添加进来。这也包括两个子目标：避免了设计一个新的协议(这会增加新的安全性缺陷被发现的可能)和避免实现一个全新的安全库。
   4. 相对高效：加密操作对CPU非常敏感，特别是非对称加密操作。基于此，TLS协议增加了一个可选的session缓存，来减少完整握手的次数。另外也要考虑减轻网络负载。
 
@@ -125,10 +125,10 @@ enum { low, medium, high } Amount;
   为了方便，基础类型可以组合起来变成结构体类型。每个定义都是新的、唯一的类型。结构体定义类似C的语法。
 ```
 struct {
-  T1 f1;
-  T2 f2;
-  ...
-  Tn fn;
+    T1 f1;
+    T2 f2;
+    ...
+    Tn fn;
 } [[T]];
 ```
   结构体中的字段可以用类似枚举值那样的引用语法，比如上个例子中T.f2表示第2个字段。结构体可以嵌套。
@@ -138,17 +138,17 @@ struct {
   结构体变体可以用一个label引用。表示语法没有规定是否是运行时才决定使用哪种结构。
 ```
 struct {
-  T1 f1;
-  T2 f2;
-  ....
-  Tn fn;
-  select (E) {
-    case e1: Te1;
-    case e2: Te2;
-    case e3: case e4: Te3;
+    T1 f1;
+    T2 f2;
     ....
-    case en: Ten;
-  } [[fv]];
+    Tn fn;
+    select (E) {
+            case e1: Te1;
+            case e2: Te2;
+            case e3: case e4: Te3;
+            ....
+            case en: Ten;
+    } [[fv]];
 } [[Tv]];
 ```
   例如：
@@ -156,34 +156,34 @@ struct {
 enum { apple, orange, banana } VariantTag;
 
 struct {
-  uint16 number;
-  opaque string<0..10>; /* variable length */
+    uint16 number;
+    opaque string<0..10>; /* variable length */
 } V1;
 
 struct {
-  uint32 number;
-  opaque string[10]; /* fixed length */
+    uint32 number;
+    opaque string[10]; /* fixed length */
 } V2;
 
 struct {
-  select (VariantTag) { /* value of selector is implicit */
-    case apple:
-      V1; /* VariantBody, tag = apple */
-    case orange:
-    case banana:
-      V2; /* VariantBody, tag = orange or banana */
-  } variant_body; /* optional label on variant */
+    select (VariantTag) { /* value of selector is implicit */
+        case apple:
+            V1; /* VariantBody, tag = apple */
+        case orange:
+        case banana:
+            V2; /* VariantBody, tag = orange or banana */
+    } variant_body; /* optional label on variant */
 } VariantRecord;
 ```
 
 # 4.7. 加密属性
-  5个加密操作——数字签名，流加密，块加密，带附加数据的认证加密，公钥加密——被分别设计成digitally-signed, stream-ciphered, block-ciphered, aead-ciphered和public-key-encrypted。在需要加密的字段前边加上相应的加密属性标签，就表示需要使用这种加密操作加密该字段。加密密钥隐含在当前session状态中(见6.1节)。
+  5个加密操作——数字签名，流加密，块加密，带附加数据的认证加密，公钥加密——被分别设计成`digitally-signed, stream-ciphered, block-ciphered, aead-ciphered和public-key-encrypted`。在需要加密的字段前边加上相应的加密属性标签，就表示需要使用这种加密操作加密该字段。加密密钥隐含在当前session状态中(见6.1节)。
 
   数字签名元素被编码成DigitallySigned结构：
 ```
 struct {
-  SignatureAndHashAlgorithm algorithm;
-  opaque signature<0..2^16-1>;
+    SignatureAndHashAlgorithm algorithm;
+    opaque signature<0..2^16-1>;
 } DigitallySigned;
 ```
 
@@ -194,8 +194,8 @@ struct {
    在DSA中，20字节的SHA-1 hash值在数字签名算法操作中是直接使用的，没有其他hash操作参与。这生成两个值`r, s`。DSA签名是个`opaque`向量，内容格式用DER编码：
 ```
 Dss-Sig-Value ::= SEQUENCE {
-  r INTEGER,
-  s INTEGER
+    r INTEGER,
+    s INTEGER
 }
 ```
 
@@ -214,16 +214,16 @@ Dss-Sig-Value ::= SEQUENCE {
   下边这个例子中：
 ```
 stream-ciphered struct {
-  uint8 field1;
-  uint8 field2;
-  digitally-signed opaque {
-  uint8 field3<0..255>;
-  uint8 field4;
-  };
+    uint8 field1;
+    uint8 field2;
+    digitally-signed opaque {
+        uint8 field3<0..255>;
+        uint8 field4;
+    };
 } UserType;
  ```
 
-  内部结构体的字段(`field3`和`field4`)作为签名/hash算法的输入，然后整个结构体用流加密算法加密。该结构体的长度是2字节的`field1`和`field2`，加上2字节的签名/hash算法，加上2字节的签名的长度，加上签名算法结果的长度。签名的长度在编码和解码结构体之前已经由使用的算法和密钥提前得知。
+  内部结构体的字段(`field3`和`field4`)作为sign/hash算法的输入，然后整个结构体用流加密算法加密。该结构体的长度是2字节的`field1`和`field2`，加上2字节的sign/hash算法，加上2字节的签名的长度，加上签名算法结果的长度。签名的长度在编码和解码结构体之前已经由使用的算法和密钥提前得知。
 
 ## 4.8. 常量
   常量类型用于定义用于特定目的的类型和常量值。
@@ -232,9 +232,10 @@ stream-ciphered struct {
   例如：
 ```
 struct {
-  uint8 f1;
-  uint8 f2;
-  } Example1;
+    uint8 f1;
+    uint8 f2;
+} Example1;
+
 Example1 ex1 = {1, 4}; /* assigns f1 = 1, f2 = 4 */
 ```
 
@@ -278,7 +279,7 @@ TLS记录层协议是个分层的协议。在每一层，消息会包含长度�
 
 本文档中有4个协议使用记录层协议：握手协议，告警协议，ChangeCipherSpec协议和应用数据协议。因为TLS协议的可扩展性，还可以添加其他上层协议。新的记录层负载类型由IANA分配(见12节)。
 
-具体实现禁止在没有协商过某些扩展功能时发送没有在本文档中定义的记录类型。如果说到了一个未知的记录类型，必须发送`unexpected_message`告警。
+具体实现禁止在没有协商过某些扩展功能时发送没有在本文档中定义的记录类型。如果收到了一个未知的记录类型，必须发送`unexpected_message`告警。
 
 任何基于TLS设计的协议必须考虑到所有可能的攻击类型。这要求协议设计者必须清楚TLS提供和没提供哪些安全特性，不能依赖那些没提供的安全特性。
 
@@ -286,7 +287,7 @@ TLS记录层协议是个分层的协议。在每一层，消息会包含长度�
 
 # 6.1. 连接状态
 
-TLS的连接状态是TSL记录层协议工作的上下文环境。规定了压缩算法、加密算法、MAC算法，另外包括这些算法的一些参数：连接上读、写两个方向的MAC密钥和对称加密密钥。逻辑上讲，总会有4个连接状态：当前的读、写状态，未决的读、写状态。所有的记录包都要经过当前读、写状态的处理。未决状态的参数可以由握手协议来设置，ChangeCipherSpec协议可以决定是否用未决状态替换当前状态，替换的话，就拿未决状态替换当前状态，未决状态重新初始化为空状态。还没设置好加密参数的状态不能转换成当前状态。初始状态必须明确规定没有加密、压缩和MAC算法。
+TLS的连接状态是TLS记录层协议工作的上下文环境。规定了压缩算法、加密算法、MAC算法，另外包括这些算法的一些参数：连接上读、写两个方向的MAC密钥和对称加密密钥。逻辑上讲，总会有4个连接状态：当前的读、写状态，未决的读、写状态。所有的记录包都要经过当前读、写状态的处理。未决状态的参数可以由握手协议来设置，ChangeCipherSpec协议可以决定是否用未决状态替换当前状态，替换的话，就拿未决状态替换当前状态，未决状态重新初始化为空状态。还没设置好加密参数的状态不能转换成当前状态。初始状态必须明确规定没有加密、压缩和MAC算法。
 
 一个TLS连接的读写状态的加密参数有以下这些：
 
@@ -316,21 +317,21 @@ enum {null, hmac_md5, hmac_sha1, hmac_sha256, hmac_sha384, hmac_sha512} MACAlgor
 enum {null(0), (255)} CompressionMethod;
 
 struct {
-  ConnectionEnd entity;
-  PRFAlgorithm prf_algorithm;
-  BulkCipherAlgorithm bulk_cipher_algorithm;
-  CipherType cipher_type;
-  uint8 enc_key_length;
-  uint8 block_length;
-  uint8 fixed_iv_length;
-  uint8 record_iv_length;
-  MACAlgorithm mac_algorithm;
-  uint8 mac_length;
-  uint8 mac_key_length;
-  CompressionMethod compression_algorithm;
-  opaque master_secret[48];
-  opaque client_random[32];
-  opaque server_random[32];
+    ConnectionEnd entity;
+    PRFAlgorithm prf_algorithm;
+    BulkCipherAlgorithm bulk_cipher_algorithm;
+    CipherType cipher_type;
+    uint8 enc_key_length;
+    uint8 block_length;
+    uint8 fixed_iv_length;
+    uint8 record_iv_length;
+    MACAlgorithm mac_algorithm;
+    uint8 mac_length;
+    uint8 mac_key_length;
+    CompressionMethod compression_algorithm;
+    opaque master_secret[48];
+    opaque client_random[32];
+    opaque server_random[32];
 } SecurityParameters;
 ```
 

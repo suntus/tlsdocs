@@ -49,4 +49,14 @@ TLS是跟应用协议无关的: 更高层的协议可以透明的建立在TLS协
 
 ## 1.3. 更新对TLS1.2的影响
 
+本文档定义了几个可能会影响TLS1.2实现的改变，其中几项TLS1.3也不支持:
+- #4.1.3节中定义的一个防止版本降级的机制
+- #4.2.3中定义的RSASSA-PSS签名算法
+- `ClientHello`扩展中的 "supported_versions" 可以用来协商TLS使用的版本，替换之前`ClientHello`中的 `legacy_version`字段
+- "signature_algorithms_cert"扩展项允许client指明自己能哪些签名算法验证X.509证书。
+
+另外，本文档阐述了几条对早期TLS版本的兼容性要求，见#9.3.
+
+# 2. 协议总览
+
 

@@ -59,3 +59,45 @@ TLS是跟应用协议无关的: 更高层的协议可以透明的建立在TLS协
 # 2. 协议总览
 安全通道用到的加密参数由TLS握手协议产生。该TLS子协议由client和server首次通信的时候使用。握手协议允许两端协商协议版本、选择加密算法、可选进行双方认证和建立共享的密钥材料。一旦握手完成，两端就可以使用建立的key去保护应用层流量了。
 
+握手失败或其他协议错误会导致连接中止，有时还可能先发送一个alert消息。
+
+TLS支持的3个基本的密钥交换模式为：
+- (EC)DHE(基于有限域或椭圆曲线的Diffie-Hellman)
+- PSK-only
+- PSK with (EC)DHE
+
+```
+      Client                                           Server
+
+Key  ^ ClientHello
+Exch | + key_share*
+     | + signature_algorithms*
+     | + psk_key_exchange_modes*
+     v + pre_shared_key*       -------->
+                                                  ServerHello  ^ Key
+                                                 + key_share*  | Exch
+                                            + pre_shared_key*  v
+                                        {EncryptedExtensions}  ^  Server
+                                        {CertificateRequest*}  v  Params
+                                               {Certificate*}  ^
+                                         {CertificateVerify*}  | Auth
+                                                   {Finished}  v
+                               <--------  [Application Data*]
+     ^ {Certificate*}
+Auth | {CertificateVerify*}
+     v {Finished}              -------->
+       [Application Data]      <------->  [Application Data]
+
+        + : 表示消息中发送的重要的扩展项
+        * : 表示可选的或依据不同情况发送的、不是每次都必须发送的消息或扩展项
+        {}: 表示该消息用一个[sender]_handshake_traffic_secret中推导出来的key保护
+        []: 表示该消息用一个[sender]_application_traffic_secret_N中推导出来的key保护
+
+            图1: 完整握手的消息流
+```
+
+可以认为握手有3个阶段(上图显示的那样):
+- 密钥交换: 建立共享密钥材料和选择加密参数。该阶段之后所有的消息都会被加密。
+- server参数: 建立其他握手参数(client是否要被认证，应用层协议支持等等...)。
+- 认证：认证server(和/或client)，提供key的确认和握手完整性校验。
+

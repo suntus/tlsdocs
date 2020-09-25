@@ -101,7 +101,7 @@ Auth | {CertificateVerify*}
 - server参数: 建立其他握手参数(client是否要被认证，应用层协议支持等等...)。
 - 认证：认证server(和/或client)，提供key的确认和握手完整性校验。
 
-在密钥交换阶段，client发送`ClientHello`消息，该消息包含一个随机数(`ClientHello.random`)，支持的协议版本，一个对称加密算法/HKDF hash算法对儿的列表；另外还有一个DH共享密钥材料集合(在`key_share`扩展项中)或者一个预共享密钥标签集合(在`pre_shared_key`扩展项中)，或者两个都有；另外还可能有其他的扩展项。也可能因为中间件的兼容性问题而存在其他字段和/或消息。
+在密钥交换阶段，client发送`ClientHello`消息，该消息包含一个随机数(`ClientHello.random`)，支持的协议版本，一个对称加密算法/HKDF hash算法对儿的列表；另外还有一个DH共享密钥材料集合(在`key_share`扩展项中)或者一个预共享密钥标签集合(在`pre_shared_key`扩展项中)，或者两个都有；另外还可能有其他的扩展项。也可能因为为兼容中间件而存在其他字段和/或消息。
 
 
 

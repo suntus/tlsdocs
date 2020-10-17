@@ -103,5 +103,17 @@ Auth | {CertificateVerify*}
 
 在密钥交换阶段，client发送`ClientHello`消息，该消息包含一个随机数(`ClientHello.random`)，支持的协议版本，一个对称加密算法/HKDF hash算法对儿的列表；另外还有一个DH共享密钥材料集合(在`key_share`扩展项中)或者一个预共享密钥标签集合(在`pre_shared_key`扩展项中)，或者两个都有；另外还可能有其他的扩展项。也可能因为为兼容中间件而存在其他字段和/或消息。
 
-server处理`ClientHello`，决定连接使用的加密参数，然后在`ServerHello`中回复选择的连接参数。`ClientHello`和`ServerHello`合起来决定共享密钥。
+server处理`ClientHello`，决定连接使用的加密参数，然后在`ServerHello`中回复选择的连接参数。`ClientHello`和`ServerHello`合起来决定共享密钥。如果用到了(EC)DHE密钥交换算法，`ServerHello`会在一个`key_share`扩展项中带上server的临时DH共享密钥；server的共享密钥必须属于client支持的组中的其中一个。如果用到了PSK密钥交换算法，`ServerHello`会包含一个`pre_shared_key`扩展项，用于指示选择用哪个client提供的PSK。注意具体实现可能会同时用(EC)DHE和PSK，这两个扩展此时都会提供。
+
+然后server发送两条消息去建立server端参数：
+
+`EncryptedExtensions`: 响应`ClientHello`中不是决定加密参数的其他扩展项(针对单独证书的那些要求也不在这里处理)。
+`CertificateRequest`: 如果要用基于证书的认证方法来认证client，对证书要求的一些参数就在该消息中发送。如果不需要认证client，就不发送该消息。
+
+最后，client和server交换认证信息。如果使用基于证书的认证方式，每次TLS都使用同样的一组消息。(基于PSK的认证属于密钥交换的一个附带效果)。特别的：
+`Certificate`: 包含端点证书和每个证书的扩展。如果不使用证书认证，server不会发送该消息，如果server没发送`CertificateRequest`(表示client不用证书进行认证)，client不会发送该消息。
+`CertificateVerify`: 用`Certifiacte`消息中的公钥对应的私钥对整个握手进行的一个签名。如果端点不是基于证书进行的认证，就不会发送该消息。
+`Finished`: 整个握手的一个MAC(Message Authentication Code)。该消息提供key的确认，将端点身份跟交换的密钥进行绑定，在PSK模式中也用来认证握手。
+
+
 
